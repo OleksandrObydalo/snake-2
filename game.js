@@ -13,12 +13,16 @@ let highScore = localStorage.getItem("snakeHighScore") || 0;
 let gameSpeed = 100;
 let gameInterval;
 let gameActive = true;
+let wallPassEnabled = true;
+let soundEnabled = true;
 
 const scoreElement = document.querySelector(".score");
 const highScoreElement = document.querySelector(".highscore");
 const gameOverElement = document.querySelector(".game-over");
 const finalScoreElement = document.querySelector(".final-score");
 const restartButton = document.querySelector(".restart-btn");
+const wallPassToggle = document.getElementById("wallPass");
+const soundToggle = document.getElementById("soundToggle");
 
 // Sound effects
 const eatSound = new Audio();
@@ -27,7 +31,23 @@ const gameOverSound = new Audio();
 gameOverSound.src = "game_over.mp3";
 
 // Update scores display
-updateScoreDisplay();
+function updateScoreDisplay() {
+  scoreElement.textContent = `Очки: ${score}`;
+  highScoreElement.textContent = `Рекорд: ${highScore}`;
+}
+
+// Initialize toggle states
+wallPassToggle.checked = wallPassEnabled;
+soundToggle.checked = soundEnabled;
+
+// Add event listeners for toggles
+wallPassToggle.addEventListener("change", () => {
+  wallPassEnabled = wallPassToggle.checked;
+});
+
+soundToggle.addEventListener("change", () => {
+  soundEnabled = soundToggle.checked;
+});
 
 function generateFood() {
   let newFood;
@@ -52,20 +72,22 @@ function generateFood() {
   return newFood;
 }
 
-function updateScoreDisplay() {
-  scoreElement.textContent = `Очки: ${score}`;
-  highScoreElement.textContent = `Рекорд: ${highScore}`;
-}
-
 function gameLoop() {
   if (!gameActive) return;
 
   const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
+  // Wall passing
+  if (wallPassEnabled) {
+    if (head.x < 0) head.x = tileCount - 1;
+    if (head.x >= tileCount) head.x = 0;
+    if (head.y < 0) head.y = tileCount - 1;
+    if (head.y >= tileCount) head.y = 0;
+  }
+
   // Game over conditions
   if (
-    head.x < 0 || head.x >= tileCount ||
-    head.y < 0 || head.y >= tileCount ||
+    (!wallPassEnabled && (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount)) ||
     snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y)
   ) {
     gameOver();
@@ -79,7 +101,10 @@ function gameLoop() {
     score++;
     updateScoreDisplay();
     food = generateFood();
-    eatSound.play();
+    
+    if (soundEnabled) {
+      eatSound.play();
+    }
     
     // Speed up slightly every 5 points
     if (score % 5 === 0) {
@@ -154,7 +179,10 @@ function draw() {
 function gameOver() {
   gameActive = false;
   clearInterval(gameInterval);
-  gameOverSound.play();
+  
+  if (soundEnabled) {
+    gameOverSound.play();
+  }
   
   // Update high score
   if (score > highScore) {
@@ -207,4 +235,3 @@ restartButton.addEventListener("click", resetGame);
 
 // Start game
 gameInterval = setInterval(gameLoop, gameSpeed);
-
